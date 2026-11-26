@@ -20,7 +20,61 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "hardened_bucket_s
 
   rule {
     apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
+      sse_algorithm = "aws:kms"
+    }
+  }
+}
+
+resource "aws_s3_bucket_versioning" "hardened_bucket_versioning" {
+  bucket = aws_s3_bucket.hardened_bucket.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_logging" "hardened_bucket_logging" {
+  bucket = aws_s3_bucket.hardened_bucket.id
+
+  target_bucket = aws_s3_bucket.hardened_bucket.id
+  target_prefix = "access-logs/"
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "hardened_bucket_lifecycle" {
+  bucket = aws_s3_bucket.hardened_bucket.id
+
+  rule {
+    id     = "archive-and-expire"
+    status = "Enabled"
+
+    transition {
+      days          = 30
+      storage_class = "STANDARD_IA"
+    }
+
+    expiration {
+      days = 365
+    }
+  }
+}
+
+resource "aws_s3_bucket_notification" "hardened_bucket_notification" {
+  bucket = aws_s3_bucket.hardened_bucket.id
+}
+
+resource "aws_s3_bucket_replication_configuration" "hardened_bucket_replication" {
+  count = 0
+
+  bucket = aws_s3_bucket.hardened_bucket.id
+  role   = "arn:aws:iam::123456789012:role/s3-replication-role"
+
+  rule {
+    id     = "placeholder"
+    status = "Enabled"
+
+    destination {
+      bucket        = "arn:aws:s3:::devsecops-gatekeeper-replication-placeholder"
+      storage_class = "STANDARD"
     }
   }
 }
@@ -44,4 +98,10 @@ resource "aws_security_group" "hardened_sg" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+}
+
+resource "aws_instance" "hardened_instance" {
+  ami                    = "ami-0c55b159cbfafe1f0"
+  instance_type          = "t3.micro"
+  vpc_security_group_ids = [aws_security_group.hardened_sg.id]
 }
