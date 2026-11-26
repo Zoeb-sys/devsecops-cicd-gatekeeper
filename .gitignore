@@ -1,0 +1,15 @@
+# Terraform files
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+
+# Credentials
+.env
+.env.*
+*.pem
+*.key
+
+# Local files
+.vscode/
