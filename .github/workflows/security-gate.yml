@@ -1,0 +1,40 @@
+name: DevSecOps Security Gate
+
+"on":
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  secret-and-iac-scan:
+    name: Secrets and Terraform Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      # STEP 1: Download repository code
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # STEP 2: Scan hardcoded secrets
+      - name: Scan for hardcoded secrets (Gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # STEP 3: Scan Terraform infrastructure
+      - name: Scan Terraform IaC (Checkov)
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: .
+          framework: terraform
+          soft_fail: false
+          output_format: cli
